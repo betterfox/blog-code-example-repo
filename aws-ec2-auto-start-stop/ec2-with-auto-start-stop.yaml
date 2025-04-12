@@ -9,6 +9,12 @@ Parameters:
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
+  S3Bucket:
+    Type: String
+    Description: S3 bucket where Lambda code is stored
+  S3Key:
+    Type: String
+    Description: S3 key for the Lambda code zip file
 
 Resources:
   DevEC2Instance:
@@ -27,6 +33,28 @@ Resources:
           FromPort: '22'
           ToPort: '22'
           CidrIp: 0.0.0.0/0
+
+  LambdaStartFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: './lambda_functions/startInstance.handler'
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Runtime: nodejs18.x
+      Timeout: 30
+
+  LambdaStopFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: './lambda_functions/stopInstance.handler'
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Runtime: nodejs18.x
+      Timeout: 30
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
