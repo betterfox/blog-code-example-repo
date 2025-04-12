@@ -1,0 +1,8 @@
+{
+    "name": "dev-ec2-start-stop-lambda-function",
+    "version": "1.0.0",
+    "type": "module",
+    "dependencies": {
+      "@aws-sdk/client-ec2": "^3.0.0"
+    }
+  }

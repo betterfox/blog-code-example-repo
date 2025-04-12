@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 instance with auto start/stop during business hours in Thailand timezone
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t4g.nano
+    Description: EC2 instance type
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
+
+Resources:
+  DevEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: ami-08f3e969e66cd963a
+      KeyName: !Ref KeyName
+
+  DevSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EC2StartStopPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                Resource: '*'
+
+  StartInstanceRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: 'cron(0 1 * * ? *)'  # 08:00 UTC (Thailand Time)
+      Targets:
+        - Arn: !GetAtt LambdaStartFunction.Arn
+          Id: "StartEC2Instance"
+          Input: !Sub '{"instance_id": "${DevEC2Instance}"}'
+
+  StopInstanceRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: 'cron(0 11 * * ? *)'  # 18:00 UTC (Thailand Time)
+      Targets:
+        - Arn: !GetAtt LambdaStopFunction.Arn
+          Id: "StopEC2Instance"
+          Input: !Sub '{"instance_id": "${DevEC2Instance}"}'
+
+  EventRulePermissionStart:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaStartFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StartInstanceRule.Arn
+
+  EventRulePermissionStop:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaStopFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StopInstanceRule.Arn
+
+Outputs:
+  InstanceId:
+    Description: "Instance ID of the newly created EC2 instance"
+    Value: !Ref DevEC2Instance

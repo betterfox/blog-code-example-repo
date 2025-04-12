@@ -1,0 +1,14 @@
+{
+  "name": "aws-ec2-auto-start-stop",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "valid:ec2": "aws cloudformation validate-template --template-body file://ec2-instance.yaml --region ap-southeast-7",
+    "apply:ec2": "aws cloudformation create-stack --stack-name MyEC2Stack --template-body file://ec2-instance.yaml --region ap-southeast-7 --parameters ParameterKey=KeyName,ParameterValue=aws-betterfox-dev",
+    "update:ec2": "aws cloudformation update-stack --stack-name MyEC2Stack --template-body file://ec2-instance.yaml --region ap-southeast-7 --parameters ParameterKey=KeyName,ParameterValue=aws-betterfox-dev",
+    "delete:ec2": "aws cloudformation delete-stack --stack-name MyEC2Stack --region ap-southeast-7"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
